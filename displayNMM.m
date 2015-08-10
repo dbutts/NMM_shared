@@ -1,4 +1,4 @@
-function [] = NMMCdisplay_model( nim, Xstim, Robs, disp_Xtargs )
+function [] = displayNMM( nim, Xstims, Robs, disp_Xtargs )
 %
 % Usage: NMMCdisplay_model( nim, <Xstim>, <Robs>, <disp_Xtargs> )
 %
@@ -11,7 +11,7 @@ function [] = NMMCdisplay_model( nim, Xstim, Robs, disp_Xtargs )
 %       (default all)
 %%
 if nargin < 2
-	Xstim = [];
+	Xstims = [];
 end
 if nargin < 3
 	Robs = [];
@@ -27,19 +27,24 @@ end
 %%
 Nmods = length(nim.mods);
 spkhstlen = nim.spk_hist.spkhstlen;
-n_hist_bins = 500; %internal parameter determining histogram resolution
+n_hist_bins = 50; %internal parameter determining histogram resolution
 
-if ~isempty(Xstim)
+if ~isempty(Xstims)
+	if ~iscell(Xstims)
+    tmp = Xstims;
+    clear Xstims
+    Xstims{1} = tmp;
+	end
 	% Compute generating signals (and internal generating signals)
 	if ~isempty(Robs)
-    [~, ~, ~, G, gint] = NMMmodel_eval(nim,Robs,Xstim);
+    [~, ~, ~, G, gint] = NMMeval_model(nim,Robs,Xstims);
 	elseif spkhstlen == 0
-    [~, ~, ~, G, gint] = NMMmodel_eval(nim,[],Xstim);
+    [~, ~, ~, G, gint] = NMMeval_model(nim,[],Xstims);
   else
     % error('Need to provide Robs to compute spike history filter output');
     disp('Need to provide Robs to compute spike history filter output. Spk-NL distribution will be off.');
-    Robs = zeros(size(Xstim,1),1);
-    [~, ~, ~, G, gint] = NMMmodel_eval(nim,Robs,Xstim);
+    Robs = zeros(size(Xstims{1},1),1);
+    [~, ~, ~, G, gint] = NMMeval_model(nim,Robs,Xstims);
   end
 	% Remove spike history offset from G (since officially part of spiking nonlinearity
 	theta = nim.spk_NL_params(1);
@@ -128,11 +133,11 @@ for tt = disp_Xtargs
 			end
 			
 			if strcmp(thismod.NLtype,'lin')
-				title('Linear stimulus filter','fontsize',14)
+				title('Lin filter','fontsize',14)
 			elseif thismod.sign == 1
-				title('Excitatory stimulus filter','fontsize',14);
+				title('Exc filter','fontsize',14);
 			elseif thismod.sign == -1
-				title('Suppressive stimulus filter','fontsize',14);
+				title('Sup filter','fontsize',14);
 			end
 			
 		else
@@ -143,11 +148,11 @@ for tt = disp_Xtargs
 				colormap(gray)
                 
 				if strcmp(thismod.NLtype,'lin')
-					title(sprintf('Lin-input Lag %d',jj-1),'fontsize',10);
+					title(sprintf('Lin Lag %d',jj-1),'fontsize',10);
 				elseif thismod.sign == 1
-					title(sprintf('E-Input Lag %d',jj-1),'fontsize',10);
+					title(sprintf('Exc Lag %d',jj-1),'fontsize',10);
 				elseif thismod.sign == -1
-					title(sprintf('S-Input Lag %d',jj-1),'fontsize',10);
+					title(sprintf('Sup Lag %d',jj-1),'fontsize',10);
 				end
 			end	
 		end
@@ -170,7 +175,12 @@ for tt = disp_Xtargs
 			% Make plot not reflect heavy tails
 			cur_modx = gendist_x((gendist_x >= my_prctile(gint(:,imod),2)) & (gendist_x <= my_prctile(gint(:,imod),99)));
 		else
-			gendist_x = linspace(-3,3,n_hist_bins); %otherwise, just pick an arbitrary x-axis to plot the NL
+			if ~isempty(thismod.NLx)
+				xrange = max([3 2*abs(thismod.NLx)]);
+				gendist_x = linspace(-xrange,xrange,n_hist_bins); %otherwise, just pick an arbitrary x-axis to plot the NL
+			else
+				gendist_x = linspace(-3,3,n_hist_bins); %otherwise, just pick an arbitrary x-axis to plot the NL
+			end
 			cur_modx = gendist_x;
 		end
         
@@ -181,11 +191,14 @@ for tt = disp_Xtargs
 			cur_mody = cur_modx;
 		elseif strcmp(thismod.NLtype,'quad')
 			%cur_modx = gendist_x;
-			cur_mody = cur_modx.^2;
+			cur_mody = (cur_modx - thismod.NLx).^2;
 		elseif strcmp(thismod.NLtype,'threshlin')
 			%cur_modx = gendist_x;
-			cur_mody = cur_modx;
+			cur_mody = cur_modx - thismod.NLx;
 			cur_mody(cur_mody < 0) = 0;
+		elseif strcmp(thismod.NLtype,'threshP')
+			cur_mody = (cur_modx-thismod.NLx).^2;
+			cur_mody(cur_modx < 0) = 0;
 		end
 		cur_xrange = cur_modx([1 end]);
         
@@ -198,7 +211,11 @@ for tt = disp_Xtargs
 			set(h1,'linewidth',1)
 			xlim(ax(1),cur_xrange)
 			xlim(ax(2),cur_xrange);
-			ylim(ax(1),[min(cur_mody) max(cur_mody)]);
+			if min(cur_mody) == max(cur_mody)
+				ylim(ax(1),[min(cur_mody) max(cur_mody)+1]);
+			else
+				ylim(ax(1),[min(cur_mody) max(cur_mody)]);
+			end
 			set(ax(2),'ytick',[])
 			yl = ylim();
 			line([0 0],yl,'color','k','linestyle','--');
@@ -211,11 +228,11 @@ for tt = disp_Xtargs
 			end
 			xlim(cur_xrange)
 			ylim([min(cur_mody) max(cur_mody)]);
-			ylabel('Subunit output','fontsize',12);
+			%ylabel('Subunit output','fontsize',12);
 		end
 		box off
-		xlabel('Internal generating function')
-		title('Upstream NL','fontsize',14)
+		xlabel('g')
+		%title('Upstream NL','fontsize',14)
 				
 		% Plot Xconv
 		if plotconv(1) 
@@ -305,6 +322,8 @@ if ~isempty(G)
 		cur_y = exp(xplot + theta);
   elseif strcmp(nim.spk_NL_type,'linear')
     cur_y = xplot + theta;
+  elseif strcmp(nim.spk_NL_type,'logistic')
+    cur_y = 1./(1 + exp(-nim.spk_NL_params(2)*(xplot + theta)));
 	else
 		error('Unsupported spk NL type');
 	end

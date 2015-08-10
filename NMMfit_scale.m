@@ -166,7 +166,7 @@ for ii = 1:Nmods
 end
 
 %% COMPUTE FINAL LL Values
-[LL, penLL,~,G] = NMMmodel_eval( nim_out, Robs, Xstims, Gmults );
+[LL, penLL,~,G] = NMMeval_model( nim_out, Robs, Xstims, Gmults );
 nim_out.LL_seq = cat(1,nim_out.LL_seq,LL);
 nim_out.penLL_seq = cat(1,nim_out.penLL_seq,penLL);
 nim_out.opt_history = cat(1,nim_out.opt_history,{'scale'});

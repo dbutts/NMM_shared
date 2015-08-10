@@ -370,6 +370,10 @@ if strcmp(nim.spk_NL_type,'logexp')
 elseif strcmp(nim.spk_NL_type,'exp')
     expg = exp(G);
     r = expg;
+		elseif strcmp(nim.spk_NL_type,'logistic')
+    bgint = G*nim.spk_NL_params(2); %g*beta
+    expg = exp(-bgint);
+		r = nim.spk_NL_params(4) + 1./(1+expg); %1/(1+exp(-gbeta))  % note third param not used
 elseif strcmp(nim.spk_NL_type,'linear')
     r = G;
 else
@@ -385,6 +389,10 @@ end
 if strcmp(nim.spk_NL_type,'linear') % use MSE as cost function 
     Nspks = length(Robs);
     LL = -sum( (Robs - r).^2 );
+elseif strcmp(nim.spk_NL_type,'logistic')
+	% Bernouli likelihood = robs log r + (1-robs) log (1-r)
+	Nspks = sum(Robs);
+	LL = nansum( Robs.*log(r) + (1-Robs).*log(1-r) );
 else
     Nspks = sum(Robs);
     LL = sum(Robs.* log(r) - r); %up to an overall constant
@@ -393,14 +401,17 @@ end
 
 %'residual' = dLL/dr
 if strcmp(nim.spk_NL_type,'logexp')
-    residual = nim.spk_NL_params(3)*nim.spk_NL_params(2)*(Robs./r - 1) .* expg ./ (1+expg);
-    residual(too_large) = nim.spk_NL_params(3)*nim.spk_NL_params(2)*(Robs(too_large)./r(too_large) - 1);
+	residual = nim.spk_NL_params(3)*nim.spk_NL_params(2)*(Robs./r - 1) .* expg ./ (1+expg);
+	residual(too_large) = nim.spk_NL_params(3)*nim.spk_NL_params(2)*(Robs(too_large)./r(too_large) - 1);
 elseif strcmp(nim.spk_NL_type,'exp')
-    residual = Robs - r;
+	residual = Robs - r;
+elseif strcmp(nim.spk_NL_type,'logistic')
+	% 'residual' = (R/r - (1-R)/(1-r))*F'[] where F[.] is the spk NL
+	residual = nim.spk_NL_params(2)* (Robs./r - (1-Robs)./(1-r)) .* expg ./ (1+expg).^2;
 elseif strcmp(nim.spk_NL_type,'linear')
-    residual = 2*(Robs - r);    
+	residual = 2*(Robs - r);    
 else
-    error('Unsupported spiking NL')
+	error('Unsupported spiking NL')
 end
 
 %initialize LL gradient

@@ -68,7 +68,10 @@ L2_mats.custom = regmat_custom;
 
 %% CREATE SPIKE HISTORY MATRIX IF NEEDED
 if spkhstlen > 0
-  Xspkhst = create_spkhist_Xmat( Robs, nim.spk_hist.bin_edges );
+  Xspkhst = create_spkhist_Xmat( RobsFULL, nim.spk_hist.bin_edges );
+	if ~isempty(Rindx)
+		Xspkhst = Xspkhst(Rindx,:);
+	end
 else
   Xspkhst = [];
 end
@@ -90,12 +93,15 @@ for n = 1:Nmods
 	if strcmp(nim.mods(n).NLtype,'nonpar')
 		fgint(:,n) = piecelin_process( gint(:,n), nim.mods(n).NLy, nim.mods(n).NLx );
 	elseif strcmp(nim.mods(n).NLtype,'quad')
-		fgint(:,n) = gint(:,n).^2;
+		fgint(:,n) = (gint(:,n)-nim.mods(n).NLx).^2;
 	elseif strcmp(nim.mods(n).NLtype,'lin')
 		fgint(:,n) = gint(:,n);
 	elseif strcmp(nim.mods(n).NLtype,'threshlin')
-		fgint(:,n) = gint(:,n);
+		fgint(:,n) = gint(:,n)-nim.mods(n).NLx;
 		fgint(fgint(:,n) < 0,n) = 0;
+	elseif strcmp(nim.mods(n).NLtype,'threshP')
+		fgint(:,n) = (gint(:,n)-nim.mods(n).NLx).^2;
+		fgint(gint(:,n) < nim.mods(n).NLx,n) = 0;
 	else
 		error('Invalid internal NL');
 	end
@@ -128,6 +134,10 @@ if strcmp(nim.spk_NL_type,'logexp')
     too_large = (bgint > max_gbeta);
     pred_rate = nim.spk_NL_params(4) + nim.spk_NL_params(3)*log(1+expg); %alpha*log(1+exp(gbeta))
     pred_rate(too_large) = nim.spk_NL_params(4) + nim.spk_NL_params(3)*bgint(too_large); %log(1+exp(x)) ~ x in limit of large x
+elseif strcmp(nim.spk_NL_type,'logistic')
+    bgint = G*nim.spk_NL_params(2); %g*beta
+    expg = exp(-bgint);
+		pred_rate = nim.spk_NL_params(4) + 1./(1+expg); %1/(1+exp(-gbeta))  % note third param not used
 elseif strcmp(nim.spk_NL_type,'exp')
     expg = exp(G);
     pred_rate = expg;
@@ -150,13 +160,15 @@ if isempty(Robs)
     return
 end
 
-
 if strcmp(nim.spk_NL_type,'linear')
-    LL = sum( (Robs - pred_rate).^2 );
-    Nspks = length(Robs);
+	LL = sum( (Robs - pred_rate).^2 );
+	Nspks = length(Robs);
+elseif strcmp(nim.spk_NL_type,'logistic')
+	LL = nansum( Robs.*log(pred_rate) + (1-Robs).*log(1-pred_rate) );
+	Nspks = sum(Robs);
 else
-    LL = sum(Robs.* log(pred_rate) - pred_rate); %up to an overall constant
-    Nspks = sum(Robs);
+	LL = sum(Robs.* log(pred_rate) - pred_rate); %up to an overall constant
+	Nspks = sum(Robs);
 end
 %% COMPUTE L2 PENALTIES
 smooth_penalty = zeros(Nmods,1);

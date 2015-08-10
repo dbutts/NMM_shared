@@ -52,8 +52,8 @@ rawLLs = LLs; penLLs = LLs;
 for rep = 1:Nreps
 	% Extract spikes from that repeat
 	
-	[rawLLs(rep) penLLs(rep)] = NMMmodel_eval( nim, RobsR(:,rep), XstimR, Gmults, regmat_custom );
+	[rawLLs(rep) LLnull] = NMMeval_model( nim, RobsR(:,rep), XstimR, Gmults );
 	
-	LLnull = log(sum(RobsR(:,rep))/T*dt) - 1;  % formula for LL/spk of null model
+	%LLnull = log(sum(RobsR(:,rep))/T*dt) - 1;  % formula for LL/spk of null model
 	LLs(rep) = rawLLs(rep)-LLnull;
 end

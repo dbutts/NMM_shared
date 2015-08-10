@@ -1,6 +1,6 @@
-function [nim_out,bin_centers,nonpar] = NMMfit_logexp_spkNL( nim, Robs, Xstim, Gmults, Uindx, display, hold_const )
+function [nim_out,bin_centers,nonpar] = NMMfit_logistic_spkNL( nim, Robs, Xstim, Gmults, Uindx, display, hold_const )
 %
-% Usage: nim_out = NMMfit_logexp_spkNL( nim, Robs, Xstim, <Gmults>, <Uindx>, <display>, <hold_const> )
+% Usage: nim_out = NMMfit_logistic_spkNL( nim, Robs, Xstim, <Gmults>, <Uindx>, <display>, <hold_const> )
 %
 % Fit 3 parameters of a alpha/beta*log(1+exp(beta*(x-theta))) model for the spiking nonlinearity.
 % INPUTS:
@@ -13,6 +13,11 @@ function [nim_out,bin_centers,nonpar] = NMMfit_logexp_spkNL( nim, Robs, Xstim, G
 %
 % OUTPUTS:
 %     nim_out: updated model structure with fit spk NL parameters
+%
+% Parameterized logistic function: 	
+%  r = params(4) + 1./(1+exp(-(params(2)*(g+params(1))
+%  [note that parameter(3) is ignored]
+
 
 %%
 if nargin < 4
@@ -49,20 +54,20 @@ Robs = Robs(:);
 
 % Add spk NL constant if it isnt already there
 if length(nim.spk_NL_params) < 4
-    nim.spk_NL_params(4) = 0;
+	nim.spk_NL_params(4) = 0;
 end
-hold_const = [hold_const; 4];
+hold_const = [hold_const; 3];
 
-initial_params = nim.spk_NL_params;
+initial_params = nim.spk_NL_params([1 2 4]);
 
 %INITIALIZE CONSTRAINTS (keep theta from getting too big, and alpha and
 %beta are non-negative)
-LB = [-1e3 1e-3 1e-3 0];
-UB = [1e3 1e3 1e3 1e3];
+LB = [-1e3 1e-3 0];
+UB = [1e3 1e3 1e3];
 Aeq = [];
 Beq = [];
 for i = 1:length(hold_const)
-	Aeq = [Aeq; zeros(1,4)];
+	Aeq = [Aeq; zeros(1,3)];
 	Aeq(end,hold_const(i)) = 1;
 	Beq = [Beq; initial_params(hold_const(i))];
 end
@@ -76,9 +81,9 @@ opts.Algorithm = 'active-set';
 fit_params = fmincon(@(K) spkNL_internal_LL(K,G,Robs), initial_params,[],[],Aeq,Beq,LB,UB,[],opts);
 
 nim_out = nim;
-nim_out.spk_NL_params = fit_params;
+nim_out.spk_NL_params([1 2 4]) = fit_params;
 
-[LL, penLL] = NMMeval_model(nim_out,Robs,Xstim,Gmults);
+[LL, penLL] = NMMeval_model( nim_out, Robs, Xstim, Gmults );
 nim_out.LL_seq = cat(1,nim_out.LL_seq,LL);
 nim_out.penLL_seq = cat(1,nim_out.penLL_seq,penLL);
 nim_out.opt_history = cat(1,nim_out.opt_history,{'spkNL'});
@@ -98,20 +103,20 @@ if display
 		end
 	end
     
-	pred = fit_params(4) + fit_params(3)*log(1 + exp(fit_params(2)*(bin_centers + fit_params(1))));
-	init = initial_params(4) + initial_params(3)*log(1 + exp(initial_params(2)*(bin_centers + initial_params(1))));
+	pred = fit_params(3) + 1./(1 + exp(-fit_params(2)*(bin_centers + fit_params(1))));
+	init = initial_params(3) + 1./(1 + exp(-initial_params(2)*(bin_centers + initial_params(1))));
 	figure
-	plot(bin_centers,nonpar/nim.stim_params(1).dt,'.-');
+	plot(bin_centers,nonpar,'.-');
 	hold on
-	plot(bin_centers,pred/nim.stim_params(1).dt,'r-')
-	plot(bin_centers,init/nim.stim_params(1).dt,'-','color',[0.2 0.8 0.2])
+	plot(bin_centers,pred,'r-')
+	plot(bin_centers,init,'-','color',[0.2 0.8 0.2])
 	hold on
 	yl = ylim();
 	plot(x,n/max(n)*yl(2),'k')
 	legend('Nonparametric','Fit','Initial','Gen Dist')
 	xlim(bin_edges([1 end]));
 	xlabel('Generating signal','fontsize',12)
-	ylabel('Firing rate','fontsize',12)
+	ylabel('Probability','fontsize',12)
 end
 
 
@@ -123,15 +128,17 @@ end
 
 function [LL] = spkNL_internal_LL(params,G,Robs)
 % function [LL] = spkNL_internal_LL(params,G,Robs)
+%  r = params(3) + 1./(1+exp(-(params(2)*(g+params(1))
 
 nspks = sum(Robs);
 
 internal = params(2)*(G + params(1));
-too_big = find(internal > 50);
-lexp = log(1+exp(internal));
-lexp(too_big) = params(2)*(G(too_big)+params(1));
+%too_big = find(internal > 50);
+%lexp = params(3)+ 1./(1+exp(-internal));
+%lexp(too_big) = params(2)*(G(too_big)+params(1));
 
-r = params(4) + params(3)*lexp;
+%r = params(4) + params(3)*lexp;
+r = params(3) + 1./(1+exp(-internal));
 
 r(r < 1e-50) = 1e-50;
 LL = -sum(Robs.*log(r)-r)/nspks;
@@ -147,5 +154,8 @@ LL = -sum(Robs.*log(r)-r)/nspks;
 % grad(3) = residual'*r/params(3);
 % 
 % grad = -grad/nspks;
+
+
+
 
 end
