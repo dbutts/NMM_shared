@@ -36,8 +36,6 @@ if nargin < 7
   desired_optim_params = [];
 end
 
-NT = size(Xstims{1},1); %stimulus dimensions
-
 %% PARSE INPUTS
 if (nargin < 4) || (length(Gmults) < Nmods)
   Gmults{Nmods} = [];
@@ -48,15 +46,17 @@ end
 
 % Index X-matrices and Robs
 RobsFULL = Robs;
+XstimsFULL = Xstims;
 if ~isempty(Uindx)
   for nn = 1:length(Xstims)
-    Xstims{nn} = Xstims{nn}(Uindx,:);
+    Xstims{nn} = XstimsFULL{nn}(Uindx,:);
   end
   Robs = RobsFULL(Uindx);
 end
 
 % Make sure Robs is a column vector
 Robs = Robs(:);
+NT = size(Xstims{1},1); %stimulus dimensions
 
 %add spk NL constant if it isnt already there
 if length(nim.spk_NL_params) < 4
@@ -70,7 +70,10 @@ initial_params(end) = nim.spk_NL_params(1);
 
 %% Put in spike-history effects (if applicable)
 if spkhstlen > 0
-    Xspkhst = create_spkhist_Xmat(Robs,nim.spk_hist.bin_edges);
+    Xspkhst = create_spkhist_Xmat( RobsFULL, nim.spk_hist.bin_edges );
+		if ~isempty(Uindx)
+			Xspkhst = Xspkhst(Uindx,:);
+		end
 		X(:,end) = Xspkhst * nim.spk_hist.coefs;
 end
 
@@ -166,7 +169,7 @@ for ii = 1:Nmods
 end
 
 %% COMPUTE FINAL LL Values
-[LL, penLL,~,G] = NMMeval_model( nim_out, Robs, Xstims, Gmults );
+[LL, nullLL, ~, G, gint, fgint, penLL] = NMMeval_model( nim_out, RobsFULL, XstimsFULL, Gmults, Uindx );
 nim_out.LL_seq = cat(1,nim_out.LL_seq,LL);
 nim_out.penLL_seq = cat(1,nim_out.penLL_seq,penLL);
 nim_out.opt_history = cat(1,nim_out.opt_history,{'scale'});
