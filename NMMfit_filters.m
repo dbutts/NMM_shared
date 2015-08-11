@@ -145,7 +145,7 @@ for ii = 1:Ntargets
 	filtLen = length(nim.mods(targets(ii)).filtK);
 	cur_inds = cnt + (1:filtLen);
 	lambda_L1(cur_inds) = nim.mods(targets(ii)).reg_params.lambda_L1;
-	cnt = cnt + filtLen+1;
+	cnt = cnt + filtLen+fit_thresh(targets(ii));
 end
 lambda_L1 = lambda_L1/sum(Robs); % since we are dealing with LL/spk
 

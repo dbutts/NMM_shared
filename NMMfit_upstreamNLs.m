@@ -132,7 +132,6 @@ end
 
 %% COMPUTE NET OUPTUT OF ALL NON-TARGET SUBUNITS
 nt_gout = zeros(NT,1);
-%Kmat = [nim.mods(:).filtK];
 %gint = Xstim*Kmat;
 gint = nan(NT,Nmods);
 
@@ -146,11 +145,15 @@ for imod = non_targets(non_targets > 0)
 	if strcmp(nim.mods(imod).NLtype,'nonpar')
 		fgint = piecelin_process(gint(:,imod),nim.mods(imod).NLy,nim.mods(imod).NLx);
 	elseif strcmp(nim.mods(imod).NLtype,'quad')
-		fgint = gint(:,imod).^2;
+		fgint = (gint(:,imod)-nim.mods(imod).NLx).^2;
 	elseif strcmp(nim.mods(imod).NLtype,'lin')
 		fgint = gint(:,imod);
+	elseif strcmp(nim.mods(imod).NLtype,'threshP')
+		fgint = gint(:,imod)-nim.mods(imod).NLx;
+		fgint(fgint < 0) = 0;
+		fgint = fgint.^(nim.mods(imod.NLy));
 	elseif strcmp(nim.mods(imod).NLtype,'threshlin')
-		fgint = gint(:,imod);
+		fgint = gint(:,imod)-nim.mods(imod).NLx;
 		fgint(fgint < 0) = 0;
 	else
 		error('Invalid internal NL');
