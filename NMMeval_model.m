@@ -224,14 +224,16 @@ penLL = LL - sum(smooth_penalty) - sum(ridge_penalty) - sum(deriv_penalty) - sum
 LL = LL/Nspks;
 penLL = penLL/Nspks;
 
-%% compute null LL
+%% Compute null LL (note this is the ideal null model that knows the obs avg rate)
 if nargout > 1
-    avg_rate = mean(Robs);
-    null_prate = ones(NT,1)*avg_rate;
-    if strcmp(nim.spk_NL_type,'linear')
-        nullLL = sum( (Robs - avg_rate).^2 );
-    else
-        nullLL = sum(Robs.* log(null_prate) - null_prate); %up to an overall constant
-    end
-    nullLL = nullLL/Nspks;
+	avg_rate = mean(Robs);
+	null_prate = ones(NT,1)*avg_rate;
+	if strcmp(nim.spk_NL_type,'linear')
+		nullLL = sum( (Robs - avg_rate).^2 );
+	elseif strcmp(nim.spk_NL_type,'logistic')
+		nullLL = sum( Robs.*log(null_prate) + (1-Robs).*log(1-null_prate) );
+	else
+		nullLL = sum(Robs.* log(null_prate) - null_prate); %up to an overall constant
+	end
+	nullLL = nullLL/Nspks;
 end
