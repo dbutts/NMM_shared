@@ -1,6 +1,9 @@
 function nim_out = NMMfit_filters( nim, Robs, Xstims, Gmults, Uindx, silent, desired_optim_params, regmat_custom, targets, fit_thresh )
 %
 % Usage: nim_out = NMMfit_filters( nim, Robs, Xstims, <Gmults>, <Uindx>, <silent>, <desired_optim_params>, <regmat_custom>,<targets>,  <fit_thresh> )
+%              or
+% Usage: nim_out = NMMfit_filters( nim, Robs, Xstims, <Gmults>, <Uindx>, <fit_params> )
+%   this is an alternate usage with struct 'fit_params'. Note fit_params must have field '.silent' set at minimum
 %
 % Optimizes the stimulus filters and threshold of threshlin terms
 %
@@ -15,6 +18,15 @@ function nim_out = NMMfit_filters( nim, Robs, Xstims, Gmults, Uindx, silent, des
 %           (-1 = spk history filter, and -2 = offset only) Default is to optimize all elements
 %       <fit_thresh>: 1 to fit internal thresholds, otherwise set
 %	                    to 0 (default). Can also pass in array of length Nmods
+%
+%       <fit_params>: structure that contains common fit parameters:
+%             .silent = 0,1 (see above)
+%             .fit_thresh = 0,1 (up to # of mods -- see above
+%             .opt_params (struct of optimization parameters)
+%             .rescaleNLs (relevant if fitting nonparametric upstream nonlinearities (see NMMfit_upstreamNLs)
+%             .regmat_custom
+%             .targets
+
 % OUTPUTS:
 %       nim_out: output model struct
 
@@ -48,6 +60,24 @@ if nargin < 9
 end
 if (nargin < 10) || isempty(fit_thresh)
 	fit_thresh = 0;
+end
+
+if isfield(silent,'silent')
+	fit_params = silent;
+	clear silent
+	silent = fit_params.silent;
+	if isfield(fit_params,'optim_params')
+		desired_optim_params = fit_params.optim_params;
+	end
+	if isfield(fit_params,'fit_thresh')
+		fit_thresh = fit_params.fit_thresh;
+	end
+	if isfield(fit_params,'regmat_custom')
+		regmat_custom = fit_params.regmat_custom;
+	end
+	if isfield(fit_params,'targets')
+		targets = fit_params.targets;
+	end
 end
 
 % Index X-matrices and Robs

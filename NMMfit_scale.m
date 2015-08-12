@@ -1,6 +1,10 @@
 function nim_out = NMMfit_scale( nim, Robs, Xstims, Gmults, Uindx, silent, desired_optim_params )
 %
 % Usage: nim_out = NMMfit_scale( nim, Robs, Xstims, <Gmults{}>, <Uindx>, <silent>, <desired_optim_params> )
+%              or
+% Usage: nim_out = NMMfit_scale( nim, Robs, Xstims, <Gmults{}>, <Uindx>, <fit_params> )
+%   this is an alternate usage with struct 'fit_params'. Note fit_params must have field '.silent' set at minimum
+%   see NMMfit_filters for more documentation about its use
 %
 % Optimizes the upstream NLs (in terms of tent-basis functions) (plus extra linear terms if desired) for
 % given stimulus filters
@@ -29,11 +33,20 @@ if ~iscell(Xstims)
 	clear Xstims
 	Xstims{1} = tmp;
 end
-if nargin < 6
+if (nargin < 6) || isempty(silent)
   silent = 1;
 end
 if nargin < 7
-  desired_optim_params = [];
+	desired_optim_params = [];
+end
+
+if isfield(silent,'silent')
+	fit_params = silent;
+	clear silent
+	silent = fit_params.silent;
+	if isfield(fit_params,'optim_params')
+		desired_optim_params = fit_params.optim_params;
+	end
 end
 
 %% PARSE INPUTS

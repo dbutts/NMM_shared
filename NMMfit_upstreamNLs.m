@@ -1,6 +1,10 @@
 function nim_out = NMMfit_upstreamNLs( nim, Robs, Xstims, Gmults, Uindx, rescale_NLs, silent, desired_optim_params, regmat_custom, desired_targets )
 %
 % Usage: nim_out = NMMfit_upstreamNLs( nim, Robs, Xstims, <Gmults>, <Uindx>, <rescale_NLs>, <silent>, <desired_optim_params>, <regmat_custom>, <desired_targets> )
+%              or
+% Usage: nim_out = NMMfit_upstreamNLs( nim, Robs, Xstims, <Gmults{}>, <Uindx>, <fit_params> )
+%   this is an alternate usage with struct 'fit_params'. Note fit_params must have field '.silent' set at minimum
+%   see NMMfit_filters for more documentation about its use
 %
 % Optimizes the upstream NLs (in terms of tent-basis functions) (plus extra linear terms if desired) for
 % given stimulus filters
@@ -65,6 +69,30 @@ if nargin < 9
 end
 if nargin < 10
 	desired_targets = [];
+end
+
+% Add any fit_params (if this was used in place of rescale_NLs
+if isfield(rescale_NLs,'silent')
+	fit_params = rescale_NLs;
+	clear rescale_NLs
+	if isfield(fit_params,'rescaleNLs')
+		rescale_NLs = fit_params.rescaleNLs;
+	elseif isfield(fit_params,'rescale_NLs')  % making sure not entered other way
+		rescale_NLs = fit_params.rescale_NLs;
+	else
+		rescale_NLs = 1;
+	end
+	silent = fit_params.silent;
+
+	if isfield(fit_params,'optim_params')
+		desired_optim_params = fit_params.optim_params;
+	end
+	if isfield(fit_params,'regmat_custom')
+		regmat_custom = fit_params.regmat_custom;
+	end
+	if isfield(fit_params,'targets')
+		desired_targets = fit_params.targets;
+	end
 end
 
 % Index X-matrices and Robs

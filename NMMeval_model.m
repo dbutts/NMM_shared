@@ -146,10 +146,13 @@ elseif strcmp(nim.spk_NL_type,'linear')
 else
     error('invalid spk nl');
 end
-%enforce minimum predicted firing rate to avoid nan LLs
-min_pred_rate = 1e-50;
-if min(pred_rate) < min_pred_rate
+
+% Enforce minimum predicted firing rate to avoid nan LLs
+if ~strcmp(nim.spk_NL_type,'linear')
+	min_pred_rate = 1e-50;
+	if min(pred_rate) < min_pred_rate
     pred_rate(pred_rate < min_pred_rate) = min_pred_rate; %minimum predicted rate
+	end
 end
 
 %% IF YOU JUST WANT TO COMPUTE G, gint, fgint and pred_rate
