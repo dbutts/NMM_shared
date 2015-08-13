@@ -26,14 +26,13 @@ function [pred_rate, spks, G, gint, fgint] = NMMsimulate( nim, Xstims, Gmults, N
 %   fgint: TxNmods matrix of the output of each subunit (after applying upstream NL)
 %					Note: if spikes input, last term of each is the spike-history	term output
 
+Robs = [];
 if (nargin < 4) || isempty(Nreps)
 	Nreps = 1;
 else
 	if length(Nreps) > 1  % then Robs instead of Nreps
 		Robs = Nreps;
 		Nreps = 1;
-	else
-		Robs = [];
 	end
 end
 
