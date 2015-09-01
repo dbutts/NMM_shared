@@ -460,6 +460,8 @@ for ii = 1:Ntargets
 	if fit_thresh(tar)
 		threshs(ii) = params( NKtot + 1 );
 		NKtot = NKtot + 1;
+	else
+		threshs(ii) = nim.mods(tar).NLx;
 	end  
 	gint(:,ii) = Xstims{nim.mods(tar).Xtarget} * ks{ii};
     
