@@ -118,6 +118,7 @@ end
 %add spike history contribution
 if spkhstlen > 0
 	G = G + Xspkhst*nim.spk_hist.coefs;
+	gint(:,end+1) = Xspkhst*nim.spk_hist.coefs;
 end
 
 %% OTHERWISE COMPUTE LL AND PREDICTED RATE

@@ -35,6 +35,13 @@ if ~iscell(Xstim)
 end
 NT = size(Xstim{1},1);
 
+% Validate spiking nonlinearity type
+if ~strcmp( nim.spk_NL_type, 'logexp' )
+	disp( 'Wrong spiking nonlinearity optimization. Exiting with no optimization performned.' )
+	nim_out = nim;
+	return
+end
+
 % Index X-matrices and Robs
 RobsFULL = Robs;
 if ~isempty(Uindx)

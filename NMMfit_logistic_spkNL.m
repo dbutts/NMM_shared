@@ -33,6 +33,12 @@ if nargin < 7
 	hold_const = [];
 end
 
+if ~strcmp( nim.spk_NL_type, 'logistic' )
+	disp( 'Wrong spiking nonlinearity optimization. Exiting with no optimization performned.' )
+	nim_out = nim;
+	return
+end
+
 if ~iscell(Xstim)
 	tmp = Xstim;
 	clear Xstim
