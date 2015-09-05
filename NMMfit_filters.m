@@ -461,7 +461,9 @@ for ii = 1:Ntargets
 		threshs(ii) = params( NKtot + 1 );
 		NKtot = NKtot + 1;
 	else
-		threshs(ii) = nim.mods(tar).NLx;
+		if ~isempty(nim.mods(tar).NLx)
+			threshs(ii) = nim.mods(tar).NLx;
+		end
 	end  
 	gint(:,ii) = Xstims{nim.mods(tar).Xtarget} * ks{ii};
     
