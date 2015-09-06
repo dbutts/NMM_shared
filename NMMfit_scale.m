@@ -126,30 +126,61 @@ LB = []; UB = []; A = []; Aeq = []; % Initialize constraint parameters
 
 
 %% HANDLE OPTIMIZATION PARAMETERS
-%default optimization parameters
-if silent == 1
-    optim_params.Display = 'off';
+if silent == 0
+	optim_params.Display = 'iter';
 else
-    optim_params.Display = 'iter';
-end
-optim_params.MaxFunEvals = 400;
-optim_params.MaxIter = 1e3;
-optim_params.TolFun = 1e-6;
-optim_params.TolX = 1e-6;
-optim_params.HessUpdate = 'bfgs';
-optim_params.GradObj = 'on';
-optim_params.Algorithm = 'Active-set';
-
-%load in specified optimization parameters
-if ~isempty(desired_optim_params)
-    spec_fields = fieldnames(desired_optim_params);
-    for i = 1:length(spec_fields)
-        optim_params = setfield(optim_params,spec_fields{i},getfield(desired_optim_params,spec_fields{i}));
-    end
+	optim_params.Display = 'off';
 end
 
-%% Optimization 
-[params] = fminunc( @(K) LLfit_scale_internal(nim, K, Robs, X), initial_params, optim_params);
+if exist('minFunc','file') == 2 % try to use Mark Schmidt's optimizer
+
+	optim_params.optTol = 1e-6;
+	optim_params.progTol = 1e-6;
+	optim_params.Method = 'lbfgs';
+	if silent == 0
+		optim_params.verbose = 2;
+	else
+		optim_params.verbose = 0;
+	end
+	
+	% Load in specified optimization parameters
+	if ~isempty(desired_optim_params)
+		spec_fields = fieldnames(desired_optim_params);
+		for i = 1:length(spec_fields)
+			optim_params = setfield(optim_params,spec_fields{i},getfield(desired_optim_params,spec_fields{i}));
+		end
+	end
+	
+	% Optimization 
+	[params] = minFunc( @(K) LLfit_scale_internal( nim, K, Robs, X), initial_params, optim_params );
+
+else  % use Matlab optimization
+
+	optim_params.MaxFunEvals = 100*filtLen;
+	optim_params.MaxIter = 1e3;
+	optim_params.TolFun = 1e-6;
+	optim_params.TolX = 1e-6;
+	if silent == 0
+		optim_params.Display = 'iter';
+	else
+		optim_params.Display = 'off';
+	end
+	optim_params.HessUpdate = 'bfgs';
+	optim_params.GradObj = 'on';
+	optim_params.Algorithm = 'Active-set';
+	optim_params.LargeScale = 'off';
+
+	%load in specified optimization parameters
+	if ~isempty(desired_optim_params)
+		spec_fields = fieldnames(desired_optim_params);
+		for i = 1:length(spec_fields)
+			optim_params = setfield(optim_params,spec_fields{i},getfield(desired_optim_params,spec_fields{i}));
+		end
+	end
+
+	% Optimization 
+	[params] = fminunc( @(K) LLfit_scale_internal( nim, K, Robs, X), initial_params, optim_params );
+end
 
 if ~silent
 	fprintf( 'Resulting gains:\n' )
