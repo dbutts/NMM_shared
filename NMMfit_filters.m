@@ -402,7 +402,7 @@ for ii = 1:Ntargets
 	cur_kern = params( cnt + (1:filtLen) );
 	nim_out.mods(targets(ii)).filtK = cur_kern(:);
 	cnt = cnt + filtLen;
-	if fit_thresh(ii)
+	if fit_thresh(targets(ii))
 		nim_out.mods(targets(ii)).NLx = params( cnt + 1 );  % pull new threshold
 		cnt = cnt + 1;
 	end
