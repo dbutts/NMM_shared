@@ -1,6 +1,9 @@
 function [LLs, rawLLs, penLLs] = NMMeval_LLreps( nim, XstimR, RobsR, Gmults, regmat_custom )
 %
 % Usage: [LLs rawLLs penLLs] = NMMeval_LLreps( nim, XstimR, RobsR, <Gmults>, <regmat_custom> )
+%   or
+%        [LLs rawLLs penLLs] = NMMeval_LLreps( nim, XstimR, Rspks, <Gmults>, <regmat_custom> )
+%
 %
 % Computes the LL/spk in units of nats of the specified model for repeated trials. 
 %
@@ -30,7 +33,7 @@ NT = size(XstimR,1);
 dt = nim.stim_params.dt;
 T = NT*dt;
 
-%% If passed spike list instead of RobsR (see above
+%% If passed spike list instead of RobsR (see above)
 if NT2 ~= NT
 	% then assume this is a spike list instead, and convert to RobsR
 	spksR = RobsR(:)';
