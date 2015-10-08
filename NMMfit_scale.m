@@ -97,22 +97,25 @@ for imod = 1:Nmods
 	
 		fgint = Xstims{nim.mods(imod).Xtarget} * nim.mods(imod).filtK;
 		
-    % Process subunit g's with upstream NLs
-    if strcmp(nim.mods(imod).NLtype,'nonpar')
-        %fgint = piecelin_process(gint(:,imod),nim.mods(imod).NLy,nim.mods(imod).NLx);
-				fgint = piecelin_process( fgint, nim.mods(imod).NLy ,nim.mods(imod).NLx );
-    elseif strcmp(nim.mods(imod).NLtype,'quad')
-        %fgint = gint(:,imod).^2;
-				fgint = fgint.^2;
-    elseif strcmp(nim.mods(imod).NLtype,'lin')
-        %fgint = gint(:,imod);
-    elseif strcmp(nim.mods(imod).NLtype,'threshlin')
-        %fgint = gint(:,imod);
-        fgint(fgint < 0) = 0;
-    else
-        error('Invalid internal NL');
+    % Process subunit g's with upstream NLs		
+		if strcmp(nim.mods(imod).NLtype,'nonpar')
+			fgint = piecelin_process( fgint, nim.mods(imod).NLy, nim.mods(imod).NLx );
+		elseif strcmp(nim.mods(imod).NLtype,'quad')
+			%fgint = gint(:,imod).^2;
+			fgint = (fgint-nim.mods(imod).NLx).^2;
+		elseif strcmp(nim.mods(imod).NLtype,'lin')
+			%fgint = gint(:,imod);
+		elseif strcmp(nim.mods(imod).NLtype,'threshlin')
+			fgint = fgint-nim.mods(imod).NLx;
+			fgint(fgint < 0) = 0;
+		elseif strcmp(nim.mods(imod).NLtype,'threshP')
+			fgint = fgint-nim.mods(imod).NLx;
+			fgint(fgint < 0) = 0;
+			fgint = fgint.^(nim.mods(imod.NLy));
+		else
+			error('Invalid internal NL');
 		end
-    
+		
     % Multiply by weight (and multiplier, if appl) and add to generating function
 		if isempty(Gmults{imod})
 			X(:,imod) = fgint*nim.mods(imod).sign;
