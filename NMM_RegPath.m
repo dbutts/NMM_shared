@@ -28,7 +28,7 @@ else
 	if isfield(fitparams,'silent')
 		silent = fitparams.silent;
 	else
-		silent = fitparams;
+		silent = 0;
 	end
 end
 silent = 0;
